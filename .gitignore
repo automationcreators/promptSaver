@@ -1,0 +1,13 @@
+*.tmp
+*.cache
+__pycache__
+.DS_Store
+node_modules
+*.log
+*.pyc
+.env
+.env.local
+venv
+.venv
+dist
+build
