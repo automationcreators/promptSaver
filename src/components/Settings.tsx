@@ -645,7 +645,7 @@ export function Settings({ categories, folders, prompts, onClose, onRefresh }: S
                       You'll need to create a Google Apps Script to enable syncing. It takes about 5 minutes.
                     </p>
                     <a
-                      href="https://github.com/elizabethknopf/prompt-vault/blob/main/GOOGLE_SHEETS_INTEGRATION.md"
+                      href="https://github.com/automationcreators/promptSaver/blob/main/GOOGLE_SHEETS_INTEGRATION.md"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"

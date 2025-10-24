@@ -320,7 +320,7 @@ Replace placeholders:
 [GitHub Issues](https://github.com/automationcreators/promptSaver/issues)
 
 # After
-[GitHub Issues](https://github.com/elizabethknopf/promptSaver/issues)
+[GitHub Issues](https://github.com/automationcreators/promptSaver/issues)
 ```
 
 ### Add Chrome Web Store Badge

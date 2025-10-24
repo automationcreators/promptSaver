@@ -372,7 +372,7 @@ Now you can:
 - **Export** your sheet for offline access
 - **Analyze** your prompt usage patterns
 
-Need help? [Open an issue on GitHub](https://github.com/elizabethknopf/promptSaver/issues)
+Need help? [Open an issue on GitHub](https://github.com/automationcreators/promptSaver/issues)
 
 ---
 
@@ -398,4 +398,4 @@ Need help? [Open an issue on GitHub](https://github.com/elizabethknopf/promptSav
 
 **That's it!** You now have automatic backup for your prompts. 🎉
 
-Questions? Check the [full integration guide](./GOOGLE_SHEETS_INTEGRATION.md) or [ask on GitHub](https://github.com/elizabethknopf/promptSaver/discussions).
+Questions? Check the [full integration guide](./GOOGLE_SHEETS_INTEGRATION.md) or [ask on GitHub](https://github.com/automationcreators/promptSaver/discussions).
