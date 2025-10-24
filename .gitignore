@@ -1,13 +1,58 @@
-*.tmp
-*.cache
-__pycache__
-.DS_Store
-node_modules
-*.log
-*.pyc
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs (will be in releases)
+dist/
+build/
+*.zip
+
+# Environment variables & secrets
 .env
+.env.*
+*.env
 .env.local
-venv
-.venv
-dist
-build
+.env.production
+.env.development
+*secret*
+*credentials*
+*token*
+*.key
+*.pem
+
+# API Keys (just in case)
+config/secrets.json
+secrets.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+.tmp/
+temp/
+*.tmp
+
+# Testing
+coverage/
+.nyc_output/
+
+# Chrome extension store assets (keep in separate folder)
+store-assets/screenshots/*.png
+store-assets/promo/*.png

@@ -1,0 +1,35 @@
+{
+  "name": "prompt-vault",
+  "version": "1.0.0",
+  "description": "Universal LLM Prompt Manager - Capture, organize, and reuse prompts across Claude, ChatGPT, Grok, Perplexity, Gemini, and Meta",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && npm run copy-files",
+    "copy-files": "cp manifest.json dist/ && cp src/content/content.css dist/ && cp -r public/icons dist/",
+    "preview": "vite preview",
+    "watch": "vite build --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "dexie": "^4.0.1",
+    "dexie-react-hooks": "^1.1.7",
+    "fuse.js": "^7.0.0",
+    "lucide-react": "^0.344.0",
+    "clsx": "^2.1.0",
+    "nanoid": "^5.0.4"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@types/chrome": "^0.0.260",
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.1.4",
+    "typescript": "^5.3.3",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1"
+  }
+}
