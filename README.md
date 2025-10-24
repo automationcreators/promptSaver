@@ -2,6 +2,12 @@
 
 Universal LLM Prompt Manager - Capture, organize, and reuse prompts across Claude, ChatGPT, Grok, Perplexity, Gemini, and Meta.
 
+> **🚀 Want to build your own extension like this?** Check out our comprehensive guides:
+> - 📖 **[BUILD_WITH_CLAUDE_CODE.md](./BUILD_WITH_CLAUDE_CODE.md)** - Complete tutorial: From idea to published extension in 6 hours
+> - 🎯 **[DEMO_GUIDE.md](./DEMO_GUIDE.md)** - 5-minute demo script for presentations
+>
+> Built with [Claude Code](https://claude.com/claude-code) - AI pair programming at its best!
+
 ## Features
 
 ### Core Features
