@@ -1,6 +1,15 @@
 import { detectPlatform, getInputElement, waitForElement, getCurrentPlatformConfig } from '../utils/platformDetector';
 import { extractCurrentPrompt } from '../utils/promptExtractor';
 
+// Check if extension context is still valid
+function isExtensionContextValid(): boolean {
+  try {
+    return !!(chrome && chrome.runtime && chrome.runtime.id);
+  } catch (e) {
+    return false;
+  }
+}
+
 // Create and inject capture button
 async function createCaptureButton() {
   const platform = detectPlatform();
@@ -88,6 +97,12 @@ async function capturePrompt() {
 
   if (!extracted) {
     showNotification('No prompt to capture', 'error');
+    return;
+  }
+
+  // Check if extension context is valid
+  if (!isExtensionContextValid()) {
+    showNotification('Extension reloaded. Please refresh this page.', 'error');
     return;
   }
 

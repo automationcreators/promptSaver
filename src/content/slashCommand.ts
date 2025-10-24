@@ -6,6 +6,15 @@ let commandActive = false;
 let commandOverlay: HTMLElement | null = null;
 let lastPrompts: any[] = []; // Cache for direct lookup
 
+// Check if extension context is still valid
+function isExtensionContextValid(): boolean {
+  try {
+    return !!(chrome && chrome.runtime && chrome.runtime.id);
+  } catch (e) {
+    return false;
+  }
+}
+
 // Listen for ";;" trigger to access prompts
 function initializeSlashCommand() {
   document.addEventListener('keydown', handleKeyDown, true);
@@ -177,6 +186,13 @@ async function loadPrompts(query: string) {
   const resultsContainer = commandOverlay.querySelector('.prompt-vault-slash-results');
   if (!resultsContainer) return;
 
+  // Check if extension context is valid
+  if (!isExtensionContextValid()) {
+    console.warn('[Prompt Vault] Extension context invalidated. Please refresh the page.');
+    resultsContainer.innerHTML = '<div class="prompt-vault-slash-error">Extension reloaded. Please refresh this page.</div>';
+    return;
+  }
+
   try {
     // Request prompts from background script
     const response = await chrome.runtime.sendMessage({
@@ -239,6 +255,13 @@ function updateCommandResults(query: string) {
 
 // Try to find and insert prompt by exact or fuzzy name match
 async function tryDirectLookup(query: string) {
+  // Check if extension context is valid
+  if (!isExtensionContextValid()) {
+    console.warn('[Prompt Vault] Extension context invalidated. Please refresh the page.');
+    updateCommandResults(query);
+    return;
+  }
+
   try {
     // Request all prompts
     const response = await chrome.runtime.sendMessage({
@@ -317,12 +340,14 @@ async function selectPrompt(promptId: string, prompts: any[]) {
   const success = insertPromptAtCursor(prompt.content);
 
   if (success) {
-    // Track usage
-    chrome.runtime.sendMessage({
-      type: 'TRACK_USAGE',
-      promptId,
-      platform: detectPlatform(),
-    });
+    // Track usage (only if extension context is valid)
+    if (isExtensionContextValid()) {
+      chrome.runtime.sendMessage({
+        type: 'TRACK_USAGE',
+        promptId,
+        platform: detectPlatform(),
+      });
+    }
 
     hideCommandOverlay();
   }
