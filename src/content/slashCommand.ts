@@ -1,10 +1,13 @@
 // Quick command system for prompt access - uses ";;" trigger
 import { getInputElement, detectPlatform } from '../utils/platformDetector';
-import { insertPromptAtCursor } from '../utils/promptExtractor';
+import { insertPromptAtCursor, setPromptContent } from '../utils/promptExtractor';
 
 let commandActive = false;
 let commandOverlay: HTMLElement | null = null;
 let lastPrompts: any[] = []; // Cache for direct lookup
+let semicolonCount = 0;
+let semicolonTimer: ReturnType<typeof setTimeout> | null = null;
+let selectedIndex = 0; // For keyboard navigation
 
 // Check if extension context is still valid
 function isExtensionContextValid(): boolean {
@@ -18,65 +21,70 @@ function isExtensionContextValid(): boolean {
 // Listen for ";;" trigger to access prompts
 function initializeSlashCommand() {
   document.addEventListener('keydown', handleKeyDown, true);
-  document.addEventListener('keyup', handleKeyUp, true);
 }
 
 function handleKeyDown(e: KeyboardEvent) {
   const inputElement = getInputElement();
   if (!inputElement) return;
 
-  // Check if we're focused on the input
-  if (document.activeElement !== inputElement) return;
-
-  // Check for ";" key (first semicolon)
-  if (e.key === ';' && !commandActive) {
-    const value = getInputValue(inputElement);
-
-    // Check if we just typed the first ";" (might be starting ";;")
-    // Don't trigger yet, wait for the second ";"
-    if (value.endsWith(';')) {
-      // Second semicolon detected
+  // Handle overlay keyboard navigation
+  if (commandActive && commandOverlay) {
+    if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
-      showCommandOverlay();
+      hideCommandOverlay();
+      return;
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      selectHighlightedResult();
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      moveSelection(1);
+      return;
+    }
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      moveSelection(-1);
+      return;
     }
   }
 
-  // Check for Escape to close
-  if (e.key === 'Escape' && commandActive) {
-    e.preventDefault();
-    hideCommandOverlay();
-  }
+  // Only trigger on input element
+  if (document.activeElement !== inputElement) return;
 
-  // Check for Enter to insert first result
-  if (e.key === 'Enter' && commandActive) {
-    e.preventDefault();
-    selectFirstResult();
-  }
-}
+  // Detect ";;" trigger
+  if (e.key === ';') {
+    const value = getInputValue(inputElement);
 
-function handleKeyUp(e: KeyboardEvent) {
-  if (!commandActive) return;
-
-  const inputElement = getInputElement();
-  if (!inputElement || document.activeElement !== inputElement) return;
-
-  const value = getInputValue(inputElement);
-
-  // Extract search query after ";;"
-  const match = value.match(/;;([^\s]*)$/);
-  if (match) {
-    const query = match[1];
-
-    // If there's a query, try direct lookup first
-    if (query.length > 0) {
-      tryDirectLookup(query);
-    } else {
-      // Just ";;" with no name - show all prompts
-      updateCommandResults('');
+    // Check if this creates ";;" at the end
+    if (value.endsWith(';') || value === '') {
+      // Will become ";;" after this keystroke
+      setTimeout(() => {
+        const newValue = getInputValue(inputElement);
+        if (newValue.endsWith(';;')) {
+          showCommandOverlay();
+        }
+      }, 0);
     }
-  } else {
-    hideCommandOverlay();
+  }
+
+  // Monitor typing after ";;" for direct lookup
+  if (commandActive && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+    setTimeout(() => {
+      const value = getInputValue(inputElement);
+      const match = value.match(/;;(.*)$/);
+      if (match) {
+        const query = match[1];
+        updateSearchAndFilter(query);
+      }
+    }, 0);
   }
 }
 
@@ -90,7 +98,10 @@ function getInputValue(element: HTMLElement): string {
 }
 
 async function showCommandOverlay() {
+  if (commandActive) return; // Already showing
+
   commandActive = true;
+  selectedIndex = 0;
 
   // Create overlay
   const overlay = document.createElement('div');
@@ -98,12 +109,8 @@ async function showCommandOverlay() {
   overlay.innerHTML = `
     <div class="prompt-vault-slash-container">
       <div class="prompt-vault-slash-header">
-        <input type="text"
-               class="prompt-vault-slash-search"
-               placeholder="Type prompt name or search..."
-               autofocus />
         <div class="prompt-vault-slash-hint">
-          💡 Tip: Type <code>;;</code> followed by prompt name for instant insert
+          💡 Tip: Type <code>;;</code> followed by prompt name for instant insert. Use ↑↓ to navigate, Enter to select, Esc to close.
         </div>
       </div>
       <div class="prompt-vault-slash-results">
@@ -121,16 +128,7 @@ async function showCommandOverlay() {
   // Load and display prompts
   loadPrompts('');
 
-  // Handle search input
-  const searchInput = overlay.querySelector('.prompt-vault-slash-search') as HTMLInputElement;
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      const query = (e.target as HTMLInputElement).value;
-      loadPrompts(query);
-    });
-  }
-
-  // Close on click outside
+  // Close on click outside container
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) {
       hideCommandOverlay();
@@ -138,22 +136,28 @@ async function showCommandOverlay() {
   });
 }
 
-function hideCommandOverlay() {
+function hideCommandOverlay(clearInput = true) {
   commandActive = false;
   if (commandOverlay) {
     commandOverlay.remove();
     commandOverlay = null;
   }
 
-  // Remove ";;" from input if present
-  const inputElement = getInputElement();
-  if (inputElement) {
-    const value = getInputValue(inputElement);
-    const match = value.match(/;;[^\s]*$/);
-    if (match) {
-      setInputValue(inputElement, value.substring(0, value.length - match[0].length));
+  // Remove ";;" from input if requested
+  if (clearInput) {
+    const inputElement = getInputElement();
+    if (inputElement) {
+      const value = getInputValue(inputElement);
+      const match = value.match(/;;(.*)$/);
+      if (match) {
+        const textBeforeSemicolons = value.substring(0, value.length - match[0].length);
+        setInputValue(inputElement, textBeforeSemicolons);
+      }
     }
   }
+
+  selectedIndex = 0;
+  lastPrompts = [];
 }
 
 function setInputValue(element: HTMLElement, value: string) {
@@ -249,83 +253,42 @@ async function loadPrompts(query: string) {
   }
 }
 
-function updateCommandResults(query: string) {
+// Update search and filter results
+function updateSearchAndFilter(query: string) {
   loadPrompts(query);
 }
 
-// Try to find and insert prompt by exact or fuzzy name match
-async function tryDirectLookup(query: string) {
-  // Check if extension context is valid
-  if (!isExtensionContextValid()) {
-    console.warn('[Prompt Vault] Extension context invalidated. Please refresh the page.');
-    updateCommandResults(query);
-    return;
-  }
-
-  try {
-    // Request all prompts
-    const response = await chrome.runtime.sendMessage({
-      type: 'GET_ALL_PROMPTS',
-    });
-
-    if (!response || !response.prompts) {
-      updateCommandResults(query);
-      return;
-    }
-
-    const prompts = response.prompts;
-    lastPrompts = prompts;
-
-    // Normalize query for comparison (lowercase, remove spaces/dashes)
-    const normalizedQuery = query.toLowerCase().replace(/[\s-_]/g, '');
-
-    // Try exact match first (by normalized title)
-    let match = prompts.find((p: any) => {
-      const normalizedTitle = p.title.toLowerCase().replace(/[\s-_]/g, '');
-      return normalizedTitle === normalizedQuery;
-    });
-
-    // If no exact match, try fuzzy match (starts with)
-    if (!match) {
-      match = prompts.find((p: any) => {
-        const normalizedTitle = p.title.toLowerCase().replace(/[\s-_]/g, '');
-        return normalizedTitle.startsWith(normalizedQuery);
-      });
-    }
-
-    // If found match, insert immediately
-    if (match && query.length >= 3) { // Require at least 3 chars for auto-insert
-      const success = insertPromptAtCursor(match.content);
-
-      if (success) {
-        // Track usage
-        chrome.runtime.sendMessage({
-          type: 'TRACK_USAGE',
-          promptId: match.id,
-          platform: detectPlatform(),
-        });
-
-        hideCommandOverlay();
-        return;
-      }
-    }
-
-    // No direct match or query too short - show search results
-    updateCommandResults(query);
-
-  } catch (error) {
-    console.error('[Prompt Vault] Error in direct lookup:', error);
-    updateCommandResults(query);
-  }
-}
-
-// Select the first result when Enter is pressed
-function selectFirstResult() {
+// Move selection up or down
+function moveSelection(direction: number) {
   if (!commandOverlay) return;
 
-  const firstItem = commandOverlay.querySelector('.prompt-vault-slash-item');
-  if (firstItem) {
-    const promptId = firstItem.getAttribute('data-id');
+  const items = commandOverlay.querySelectorAll('.prompt-vault-slash-item');
+  if (items.length === 0) return;
+
+  // Remove previous highlight
+  items.forEach(item => item.classList.remove('prompt-vault-slash-item-selected'));
+
+  // Update selected index
+  selectedIndex = Math.max(0, Math.min(items.length - 1, selectedIndex + direction));
+
+  // Add highlight to new selection
+  const selectedItem = items[selectedIndex];
+  selectedItem.classList.add('prompt-vault-slash-item-selected');
+
+  // Scroll into view if needed
+  selectedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+// Select the highlighted result
+function selectHighlightedResult() {
+  if (!commandOverlay) return;
+
+  const items = commandOverlay.querySelectorAll('.prompt-vault-slash-item');
+  if (items.length === 0) return;
+
+  const selectedItem = items[selectedIndex];
+  if (selectedItem) {
+    const promptId = selectedItem.getAttribute('data-id');
     if (promptId && lastPrompts.length > 0) {
       selectPrompt(promptId, lastPrompts);
     }
@@ -334,21 +297,48 @@ function selectFirstResult() {
 
 async function selectPrompt(promptId: string, prompts: any[]) {
   const prompt = prompts.find((p: any) => p.id === promptId);
-  if (!prompt) return;
+  if (!prompt) {
+    console.error('[Prompt Vault] Prompt not found:', promptId);
+    return;
+  }
+
+  // First, clear the ";;" from input
+  const inputElement = getInputElement();
+  if (inputElement) {
+    const value = getInputValue(inputElement);
+    const match = value.match(/;;(.*)$/);
+    if (match) {
+      const textBeforeSemicolons = value.substring(0, value.length - match[0].length);
+      setInputValue(inputElement, textBeforeSemicolons);
+    }
+  }
+
+  // Small delay to ensure input is cleared
+  await new Promise(resolve => setTimeout(resolve, 50));
 
   // Insert prompt content
-  const success = insertPromptAtCursor(prompt.content);
+  const success = setPromptContent(prompt.content);
 
   if (success) {
+    console.log('[Prompt Vault] Prompt inserted successfully');
+
     // Track usage (only if extension context is valid)
     if (isExtensionContextValid()) {
-      chrome.runtime.sendMessage({
-        type: 'TRACK_USAGE',
-        promptId,
-        platform: detectPlatform(),
-      });
+      try {
+        chrome.runtime.sendMessage({
+          type: 'TRACK_USAGE',
+          promptId,
+          platform: detectPlatform(),
+        });
+      } catch (error) {
+        console.error('[Prompt Vault] Error tracking usage:', error);
+      }
     }
 
+    // Close overlay without clearing input again
+    hideCommandOverlay(false);
+  } else {
+    console.error('[Prompt Vault] Failed to insert prompt');
     hideCommandOverlay();
   }
 }

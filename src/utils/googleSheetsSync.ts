@@ -15,6 +15,7 @@ export interface SyncResult {
 
 /**
  * Sync prompts to Google Sheets via Apps Script Web App
+ * Routes the request through the background script to avoid CORS issues
  */
 export async function syncToGoogleSheets(
   webAppUrl: string,
@@ -38,59 +39,14 @@ export async function syncToGoogleSheets(
   }
 
   try {
-    const response = await fetch(webAppUrl, {
-      method: 'POST',
-      redirect: 'follow',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompts: prompts.map(p => ({
-          id: p.id,
-          title: p.title,
-          content: p.content,
-          category: p.category,
-          tags: p.tags,
-          platform: p.platform,
-          createdAt: p.createdAt,
-          lastUsed: p.lastUsed,
-          usageCount: p.usageCount,
-          isFavorite: p.isFavorite,
-        })),
-        timestamp: new Date().toISOString(),
-      }),
+    // Send message to background script to perform the sync
+    const response = await chrome.runtime.sendMessage({
+      type: 'GOOGLE_SHEETS_SYNC',
+      webAppUrl: webAppUrl.trim(),
+      prompts: prompts,
     });
 
-    // Check if response is OK
-    if (!response.ok) {
-      return {
-        success: false,
-        message: 'Sync failed. Check your Google Apps Script deployment settings.',
-        error: 'HTTP_ERROR',
-      };
-    }
-
-    // Try to parse response (might be HTML redirect for first time)
-    let result;
-    const contentType = response.headers.get('content-type');
-
-    if (contentType?.includes('application/json')) {
-      result = await response.json();
-
-      if (result.success === false) {
-        return {
-          success: false,
-          message: result.error || 'Sync failed',
-          error: 'SCRIPT_ERROR',
-        };
-      }
-    }
-
-    return {
-      success: true,
-      message: `Successfully synced ${prompts.length} prompts to Google Sheets`,
-      promptCount: prompts.length,
-    };
+    return response;
   } catch (error) {
     console.error('Sync error:', error);
 
@@ -113,6 +69,7 @@ export async function syncToGoogleSheets(
 
 /**
  * Test connection to Google Apps Script
+ * Routes the request through the background script to avoid CORS issues
  */
 export async function testConnection(webAppUrl: string): Promise<SyncResult> {
   if (!webAppUrl || !webAppUrl.trim()) {
@@ -132,31 +89,13 @@ export async function testConnection(webAppUrl: string): Promise<SyncResult> {
   }
 
   try {
-    const response = await fetch(webAppUrl, {
-      method: 'POST',
-      redirect: 'follow',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompts: [],
-        test: true,
-        timestamp: new Date().toISOString(),
-      }),
+    // Send message to background script to test the connection
+    const response = await chrome.runtime.sendMessage({
+      type: 'GOOGLE_SHEETS_TEST',
+      webAppUrl: webAppUrl.trim(),
     });
 
-    if (!response.ok) {
-      return {
-        success: false,
-        message: 'Connection failed. Make sure your script is deployed with "Anyone" access.',
-        error: 'CONNECTION_FAILED',
-      };
-    }
-
-    return {
-      success: true,
-      message: 'Connection successful! Ready to sync.',
-    };
+    return response;
   } catch (error) {
     console.error('Connection test error:', error);
 

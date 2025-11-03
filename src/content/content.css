@@ -167,6 +167,8 @@
   border: 2px solid #e5e7eb !important;
   border-radius: 8px !important;
   font-size: 15px !important;
+  color: #000000 !important;
+  background: #ffffff !important;
   outline: none !important;
   transition: border-color 0.2s !important;
   font-family: inherit !important;
@@ -186,12 +188,18 @@
   padding: 12px !important;
   border-radius: 8px !important;
   cursor: pointer !important;
-  transition: background 0.2s !important;
+  transition: background 0.2s, border 0.2s !important;
   margin-bottom: 4px !important;
+  border: 2px solid transparent !important;
 }
 
 .prompt-vault-slash-item:hover {
   background: #f0f9ff !important;
+}
+
+.prompt-vault-slash-item-selected {
+  background: #e0f2fe !important;
+  border: 2px solid #0ea5e9 !important;
 }
 
 .prompt-vault-slash-item-header {

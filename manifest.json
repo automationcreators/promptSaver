@@ -17,7 +17,9 @@
     "https://x.com/*",
     "https://www.perplexity.ai/*",
     "https://gemini.google.com/*",
-    "https://www.meta.ai/*"
+    "https://www.meta.ai/*",
+    "https://script.google.com/*",
+    "https://script.googleusercontent.com/*"
   ],
   "action": {
     "default_popup": "popup.html",

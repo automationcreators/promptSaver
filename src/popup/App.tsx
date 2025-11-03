@@ -15,6 +15,7 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
   const [filterFavorites, setFilterFavorites] = useState(false);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [capturedPrompt, setCapturedPrompt] = useState<any>(null);
 
   // Load prompts using Dexie hooks
@@ -23,12 +24,18 @@ export function App() {
   const folders = useLiveQuery(() => getAllFolders(), []);
   const categories = useLiveQuery(() => getAllCategories(), []);
 
-  // Filter prompts based on search and favorites
+  // Filter prompts based on search, favorites, and folder
   const filteredPrompts = React.useMemo(() => {
     let prompts = filterFavorites ? favoritePrompts : allPrompts;
 
     if (!prompts) return [];
 
+    // Filter by selected folder
+    if (selectedFolderId) {
+      prompts = prompts.filter((p) => p.folderId === selectedFolderId);
+    }
+
+    // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       prompts = prompts.filter(
@@ -40,7 +47,7 @@ export function App() {
     }
 
     return prompts;
-  }, [allPrompts, favoritePrompts, searchQuery, filterFavorites]);
+  }, [allPrompts, favoritePrompts, searchQuery, filterFavorites, selectedFolderId]);
 
   // Check for captured prompt on mount
   useEffect(() => {
@@ -151,14 +158,68 @@ export function App() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 overflow-hidden flex">
         {view === 'list' && (
-          <PromptList
-            prompts={filteredPrompts || []}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onToggleFavorite={handleToggleFavorite}
-          />
+          <>
+            {/* Folder Sidebar */}
+            {folders && folders.length > 0 && (
+              <div className="w-48 bg-white border-r border-gray-200 overflow-y-auto">
+                <div className="p-3">
+                  <button
+                    onClick={() => setSelectedFolderId(null)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition ${
+                      selectedFolderId === null
+                        ? 'bg-primary-50 text-primary-700'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>All Prompts</span>
+                      <span className="text-xs text-gray-500">
+                        {allPrompts?.length || 0}
+                      </span>
+                    </div>
+                  </button>
+
+                  <div className="mt-2 space-y-1">
+                    {folders.map((folder) => {
+                      const promptCount = allPrompts?.filter((p) => p.folderId === folder.id).length || 0;
+                      return (
+                        <button
+                          key={folder.id}
+                          onClick={() => setSelectedFolderId(folder.id)}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-sm transition group ${
+                            selectedFolderId === folder.id
+                              ? 'bg-primary-50 text-primary-700'
+                              : 'text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: folder.color || '#3B82F6' }}
+                            />
+                            <span className="flex-1 truncate font-medium">{folder.name}</span>
+                            <span className="text-xs text-gray-500">{promptCount}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Prompt List */}
+            <div className="flex-1 overflow-hidden">
+              <PromptList
+                prompts={filteredPrompts || []}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onToggleFavorite={handleToggleFavorite}
+              />
+            </div>
+          </>
         )}
 
         {view === 'editor' && (
